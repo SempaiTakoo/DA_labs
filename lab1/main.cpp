@@ -30,7 +30,7 @@ class TVector {
    private:
     static T* Allocate(size_t newCapacity);
     void Reallocate(size_t newCapacity);
-    void Destroy(T *object);
+    void Destroy(T* object);
 };
 
 template <typename T>
@@ -68,7 +68,7 @@ void TVector<T>::Reallocate(size_t newCapacity) {
 }
 
 template <typename T>
-void TVector<T>::Destroy(T *object) {
+void TVector<T>::Destroy(T* object) {
     object->~T();
 }
 
@@ -161,6 +161,45 @@ struct TPair {
     uint64_t value;
 };
 
+// int Sort(TVector<TPair> data) {
+//     std::ios_base::sync_with_stdio(false);
+//     std::cin.tie(0);
+
+//     const size_t counterSize = UINT16_MAX + 1;
+//     TVector<size_t> counter(counterSize);
+//     for (size_t i = 0; i < counterSize; ++i) {
+//         counter[i] = 0;
+//     }
+
+//     // TVector<TPair> data;
+//     // TPair pair;
+//     // while (std::cin >> pair.key >> pair.value) {
+//     //     ++counter[pair.key];
+//     //     data.PushBack(pair);
+//     // }
+
+//     for (int i = 0; i < data.Size(); ++i) {
+//         ++counter[data[i].key];
+//     }
+
+//     for (size_t i = 1; i < counter.Size(); ++i) {
+//         counter[i] = counter[i - 1] + counter[i];
+//     }
+
+//     TVector<TPair> result(data.Size());
+//     for (size_t i = data.Size(); i-- > 0; ) {
+//         uint16_t key = data[i].key;
+//         result[counter[key] - 1] = data[i];
+//         --counter[key];
+//     }
+
+//     // for (size_t i = 0; i < result.Size(); ++i) {
+//     //     std::cout << result[i].key << '\t' << result[i].value << '\n';
+//     // }
+
+//     return 0;
+// }
+
 int main() {
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(0);
@@ -183,7 +222,7 @@ int main() {
     }
 
     TVector<TPair> result(data.Size());
-    for (size_t i = data.Size(); i-- > 0; ) {
+    for (size_t i = data.Size(); i-- > 0;) {
         uint16_t key = data[i].key;
         result[counter[key] - 1] = data[i];
         --counter[key];
