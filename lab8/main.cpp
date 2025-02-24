@@ -16,24 +16,20 @@ int FindLowestPriceRow(std::vector<Addition> &v, int t) {
     size_t n = v[0].ratios.size();
     int minPrice = MAX_NUM + 1;
     int index = -1;
-
     for (int i = t; i < m; ++i) {
         if ((v[i].ratios[t] != 0.0) && (v[i].price < minPrice)) {
             index = i;
             minPrice = v[i].price;
         }
     }
-
     return index;
 }
 
 void SubtractRows(std::vector<Addition> &v, int t) {
     size_t m = v.size();
     size_t n = v[0].ratios.size();
-
     for (int i = t + 1; i < m; ++i) {
         double coeff = v[i].ratios[t] / v[t].ratios[t];
-
         for (int j = t; j < n; ++j) {
             v[i].ratios[j] -= v[t].ratios[j] * coeff;
         }
