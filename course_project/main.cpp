@@ -3,70 +3,95 @@
 #include <algorithm>
 #include <sstream>
 #include <iterator>
+#include <chrono>
 
 using namespace std;
 
-vector<int> lcs(const vector<string>& A, const vector<string>& B) {
-    size_t len_a = A.size(), len_b = B.size();
-    vector<int> dp_curr(len_b + 1, 0), dp_prev(len_b + 1, 0);
 
-    for (size_t i = 1; i <= len_a; ++i) {
-        for (size_t j = 1; j <= len_b; ++j) {
-            if (A[i - 1] == B[j - 1]) dp_curr[j] = dp_prev[j - 1] + 1;
-            else dp_curr[j] = max(dp_curr[j - 1], dp_prev[j]);
+vector<int> LCS_score(const vector<string>& X, const vector<string>& Y) {
+    size_t n = X.size(), m = Y.size();
+    vector<int> dp_cur(m + 1, 0), dp_prev(m + 1, 0);
+
+    for (size_t i = 1; i <= n; ++i) {
+        for (size_t j = 1; j <= m; ++j) {
+            if (X[i - 1] == Y[j - 1]) {
+                dp_cur[j] = dp_prev[j - 1] + 1;
+            }
+            else {
+                dp_cur[j] = max(dp_cur[j - 1], dp_prev[j]);
+            }
         }
-        swap(dp_prev, dp_curr);
+        swap(dp_prev, dp_cur);
     }
 
     return dp_prev;
 }
 
-vector<string> hirschberg_recursive(const vector<string>& A, const vector<string>& B) {
-    size_t len_a = A.size(), len_b = B.size();
 
-    if (len_a == 0 || len_b == 0) return {};
-    if (len_a == 1) {
-        return find(B.begin(), B.end(), A[0]) != B.end() ? vector<string>{A[0]} : vector<string>{};
-    }
-    if (len_b == 1) {
-        return find(A.begin(), A.end(), B[0]) != A.end() ? vector<string>{B[0]} : vector<string>{};
-    }
+vector<string> recursive_hirschberg(
+    const vector<string>& X, const vector<string>& Y
+) {
+    size_t n = X.size(), m = Y.size();
 
-    size_t mid_a = len_a / 2;
-    vector<int> lcs_score(len_b + 1, 0);
-
-    vector<int> left_tmp = lcs(
-          vector<string>(A.begin(), A.begin() + mid_a),
-          vector<string>(B.begin(), B.end())
-    );
-
-    vector<int> right_tmp = lcs(
-          vector<string>(A.rbegin(), A.rbegin() + (len_a - mid_a)),
-          vector<string>(B.rbegin(), B.rend())
-    );
-
-    for (size_t i = 0; i <= len_b; ++i) {
-        lcs_score[i] = left_tmp[i] + right_tmp[len_b - i];
+    if (n == 0 || m == 0) {
+        return {};
     }
 
-    size_t best_split = distance(lcs_score.begin(), max_element(lcs_score.begin(), lcs_score.end()));
+    if (n == 1) {
+        if (find(Y.begin(), Y.end(), X[0]) == Y.end()) {
+            return vector<string>{};
+        } else {
+            return vector<string>{X[0]};
+        }
+    }
 
-    vector<string> left_part = hirschberg_recursive(
-      vector<string>(A.begin(), A.begin() + mid_a),
-      vector<string>(B.begin(), B.begin() + best_split)
+    if (m == 1) {
+        if (find(X.begin(), X.end(), Y[0]) == X.end()) {
+            return vector<string>{};
+        } else {
+            return vector<string>{Y[0]};
+        }
+    }
+
+    size_t mid_x = n / 2;
+    vector<int> lcs_score(m + 1, 0);
+
+    vector<int> top_lcs_score = LCS_score(
+        vector<string>(X.begin(), X.begin() + mid_x),
+        vector<string>(Y.begin(), Y.end())
     );
-    vector<string> right_part = hirschberg_recursive(
-      vector<string>(A.begin() + mid_a, A.end()),
-      vector<string>(B.begin() + best_split, B.end())
+    vector<int> bot_lcs_score = LCS_score(
+        vector<string>(X.rbegin(), X.rbegin() + (n - mid_x)),
+        vector<string>(Y.rbegin(), Y.rend())
+    );
+
+    for (size_t i = 0; i <= m; ++i) {
+        lcs_score[i] = top_lcs_score[i] + bot_lcs_score[m - i];
+    }
+
+    size_t best_split = distance(
+        lcs_score.begin(),
+        max_element(lcs_score.begin(), lcs_score.end())
+    );
+
+    vector<string> left_part = recursive_hirschberg(
+        vector<string>(X.begin(), X.begin() + mid_x),
+        vector<string>(Y.begin(), Y.begin() + best_split)
+    );
+    vector<string> right_part = recursive_hirschberg(
+        vector<string>(X.begin() + mid_x, X.end()),
+        vector<string>(Y.begin() + best_split, Y.end())
     );
 
     left_part.insert(left_part.end(), right_part.begin(), right_part.end());
     return left_part;
 }
 
-vector<string> hirschberg(const vector<string>& A, const vector<string>& B) {
-    return hirschberg_recursive(A, B);
+
+vector<string> hirschberg(const vector<string>& X, const vector<string>& Y) {
+    return recursive_hirschberg(X, Y);
 }
+
 
 int main() {
     ios::sync_with_stdio(false);
@@ -78,16 +103,27 @@ int main() {
     getline(cin, line2);
 
     istringstream iss1(line1), iss2(line2);
-    vector<string> A((istream_iterator<string>(iss1)), istream_iterator<string>());
-    vector<string> B((istream_iterator<string>(iss2)), istream_iterator<string>());
+    vector<string> X(
+        (istream_iterator<string>(iss1)), istream_iterator<string>()
+    );
+    vector<string> Y(
+        (istream_iterator<string>(iss2)), istream_iterator<string>()
+    );
 
-    vector<string> lcs = hirschberg(A, B);
+    auto start = chrono::high_resolution_clock::now();
 
-    cout << lcs.size() << endl;
-    for (const string& word : lcs) {
-        cout << word << " ";
-    }
-    cout << endl;
+    vector<string> lcs = hirschberg(X, Y);
+
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> elapsed = end - start;
+
+    cout << elapsed.count() << " seconds\n";
+
+    // cout << lcs.size() << endl;
+    // for (const string& word : lcs) {
+    //     cout << word << ' ';
+    // }
+    // cout << '\n';
 
     return 0;
 }
