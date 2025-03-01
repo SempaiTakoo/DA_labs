@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <climits>
+#include <chrono>
 
 using namespace std;
 
@@ -22,6 +23,8 @@ int main() {
     for (long long j = 0; j < m; ++j) {
         dp[0][j] = A[0][j];
     }
+
+    auto start = chrono::high_resolution_clock::now();
 
     for (long long i = 1; i < n; ++i) {
         for (long long j = 0; j < m; ++j) {
@@ -58,11 +61,16 @@ int main() {
         --i;
     }
 
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> elapsed = end - start;
 
-    for (long long i = path.size() - 1; i >= 0; --i) {
-        cout << "(" << path[i].first << "," << path[i].second << ") ";
-    }
-    cout << endl;
+    cout << elapsed.count() << " seconds\n";
+
+
+    // for (long long i = path.size() - 1; i >= 0; --i) {
+    //     cout << "(" << path[i].first << "," << path[i].second << ") ";
+    // }
+    // cout << endl;
 
     return 0;
 }
