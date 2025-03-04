@@ -1,129 +1,177 @@
 #include <iostream>
 #include <vector>
-#include <algorithm>
-#include <sstream>
-#include <iterator>
-#include <chrono>
+#include <queue>
+#include <map>
+#include <limits>
+#include <set>
+#include <cmath>
+#include <set>
+#include <iomanip>
 
 using namespace std;
 
+const bool DEBUG = false;
+const double INF = numeric_limits<double>::infinity();
 
-vector<int> LCS_score(const vector<string>& X, const vector<string>& Y) {
-    size_t n = X.size(), m = Y.size();
-    vector<int> dp_cur(m + 1, 0), dp_prev(m + 1, 0);
+struct Vertex {
+    double x, y;
+};
 
-    for (size_t i = 1; i <= n; ++i) {
-        for (size_t j = 1; j <= m; ++j) {
-            if (X[i - 1] == Y[j - 1]) {
-                dp_cur[j] = dp_prev[j - 1] + 1;
+class Graph {
+public:
+    vector<Vertex> vertices;
+    vector<vector<bool>> adjacency_matrix;
+
+    Graph(int vertices_count) {
+        vertices.resize(vertices_count);
+        adjacency_matrix.resize(
+            vertices_count, vector<bool>(vertices_count, false)
+        );
+    }
+
+    size_t get_vertices_count() {
+        return vertices.size();
+    }
+
+    pair<int, int> get_coordinates(int vertex_number) {
+        Vertex vertex = vertices[vertex_number];
+        return {vertex.x, vertex.y};
+    }
+
+    void addVertex(int vertex_number, double x, double y) {
+        vertices[vertex_number] = {x, y};
+    }
+
+    void addEdge(int s, int f) {
+        adjacency_matrix[s][f] = true;
+        adjacency_matrix[f][s] = true;
+    }
+
+    void print_adjacency_matrix() {
+        for (size_t i = 0; i < adjacency_matrix.size(); ++i) {
+            for (size_t j = 0; j < adjacency_matrix.size(); ++j) {
+                cout << adjacency_matrix[i][j] << ' ';
             }
-            else {
-                dp_cur[j] = max(dp_cur[j - 1], dp_prev[j]);
+            cout << '\n';
+        }
+    }
+};
+
+struct Node {
+    int vertex_number;
+    double f;
+
+    bool operator>(const Node node) const {
+        return f > node.f;
+    }
+};
+
+Graph input_graph() {
+    int n, m;
+    cin >> n >> m;
+
+    Graph graph(n);
+
+    int x, y;
+    for (int i = 0; i < n; ++i)
+    {
+        cin >> x >> y;
+        graph.addVertex(i, x, y);
+    }
+
+    int s, f;
+    for (int i = 0; i < m; ++i)
+    {
+        cin >> s >> f;
+        graph.addEdge(s - 1, f - 1);
+    }
+
+    return graph;
+}
+
+double distance(pair<int, int> a, pair<int, int> b) {
+    int x = b.first - a.first;
+    int y = b.second - a.second;
+    return sqrt(x * x + y * y);
+}
+
+double a_star(Graph graph, int start, int finish) {
+    priority_queue<Node, vector<Node>, greater<Node>> open;
+    vector<bool> closed(graph.get_vertices_count(), false);
+    vector<double> g(graph.get_vertices_count(), INF);
+    vector<double> f(graph.get_vertices_count(), INF);
+
+    g[start] = 0;
+    f[start] = distance(
+        graph.get_coordinates(start),
+        graph.get_coordinates(finish)
+    );
+    open.push({start, f[start]});
+
+    while (!open.empty()) {
+        Node node = open.top();
+        int current = node.vertex_number;
+        open.pop();
+        closed[current] = true;
+
+        if (current == finish) {
+            return g[current];
+        }
+
+        vector<bool> neighbors = graph.adjacency_matrix[current];
+        for (size_t neighbor = 0; neighbor < neighbors.size(); ++neighbor) {
+            bool is_achievable = neighbors[neighbor];
+            bool is_neighbor_in_closed = closed[neighbor];
+
+            if (!is_achievable || is_neighbor_in_closed) {
+                continue;
             }
-        }
-        swap(dp_prev, dp_cur);
-    }
 
-    return dp_prev;
-}
+            double g_temp = g[current] + distance(
+                graph.get_coordinates(current),
+                graph.get_coordinates(static_cast<int>(neighbor))
+            );
 
+            if (g_temp >= g[neighbor]) {
+                continue;
+            }
 
-vector<string> recursive_hirschberg(
-    const vector<string>& X, const vector<string>& Y
-) {
-    size_t n = X.size(), m = Y.size();
-
-    if (n == 0 || m == 0) {
-        return {};
-    }
-
-    if (n == 1) {
-        if (find(Y.begin(), Y.end(), X[0]) == Y.end()) {
-            return vector<string>{};
-        } else {
-            return vector<string>{X[0]};
+            g[neighbor] = g_temp;
+            f[neighbor] = g[neighbor] + distance(
+                graph.get_coordinates(static_cast<int>(neighbor)),
+                graph.get_coordinates(finish)
+            );
+            open.push({static_cast<int>(neighbor), f[neighbor]});
         }
     }
 
-    if (m == 1) {
-        if (find(X.begin(), X.end(), Y[0]) == X.end()) {
-            return vector<string>{};
-        } else {
-            return vector<string>{Y[0]};
-        }
-    }
-
-    size_t mid_x = n / 2;
-    vector<int> lcs_score(m + 1, 0);
-
-    vector<int> top_lcs_score = LCS_score(
-        vector<string>(X.begin(), X.begin() + mid_x),
-        vector<string>(Y.begin(), Y.end())
-    );
-    vector<int> bot_lcs_score = LCS_score(
-        vector<string>(X.rbegin(), X.rbegin() + (n - mid_x)),
-        vector<string>(Y.rbegin(), Y.rend())
-    );
-
-    for (size_t i = 0; i <= m; ++i) {
-        lcs_score[i] = top_lcs_score[i] + bot_lcs_score[m - i];
-    }
-
-    size_t best_split = distance(
-        lcs_score.begin(),
-        max_element(lcs_score.begin(), lcs_score.end())
-    );
-
-    vector<string> left_part = recursive_hirschberg(
-        vector<string>(X.begin(), X.begin() + mid_x),
-        vector<string>(Y.begin(), Y.begin() + best_split)
-    );
-    vector<string> right_part = recursive_hirschberg(
-        vector<string>(X.begin() + mid_x, X.end()),
-        vector<string>(Y.begin() + best_split, Y.end())
-    );
-
-    left_part.insert(left_part.end(), right_part.begin(), right_part.end());
-    return left_part;
+    return -1;
 }
 
+void shortest_paths_between_vertices() {
+    Graph graph = input_graph();
 
-vector<string> hirschberg(const vector<string>& X, const vector<string>& Y) {
-    return recursive_hirschberg(X, Y);
+    int q;
+    cin >> q;
+
+    for (int i = 0; i < q; ++i) {
+        int start, finish;
+        cin >> start >> finish;
+
+        --start;
+        --finish;
+
+        cout << fixed << setprecision(6);
+        cout << a_star(graph, start, finish) << '\n';
+    }
 }
-
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(0);
     cout.tie(0);
 
-    string line1, line2;
-    getline(cin, line1);
-    getline(cin, line2);
-
-    istringstream iss1(line1), iss2(line2);
-    vector<string> X(
-        (istream_iterator<string>(iss1)), istream_iterator<string>()
-    );
-    vector<string> Y(
-        (istream_iterator<string>(iss2)), istream_iterator<string>()
-    );
-
-    auto start = chrono::high_resolution_clock::now();
-
-    vector<string> lcs = hirschberg(X, Y);
-
-    auto end = chrono::high_resolution_clock::now();
-    chrono::duration<double> elapsed = end - start;
-
-    cout << elapsed.count() << " seconds\n";
-
-    // cout << lcs.size() << endl;
-    // for (const string& word : lcs) {
-    //     cout << word << ' ';
-    // }
-    // cout << '\n';
+    shortest_paths_between_vertices();
 
     return 0;
 }
