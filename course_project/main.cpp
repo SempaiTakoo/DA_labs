@@ -13,13 +13,9 @@ using namespace std;
 const bool DEBUG = false;
 const double INF = numeric_limits<double>::infinity();
 
-struct Vertex {
-    double x, y;
-};
-
 class Graph {
 public:
-    vector<Vertex> vertices;
+    vector<pair<int, int>> vertices;
     vector<vector<bool>> adjacency_matrix;
 
     Graph(int vertices_count) {
@@ -27,15 +23,6 @@ public:
         adjacency_matrix.resize(
             vertices_count, vector<bool>(vertices_count, false)
         );
-    }
-
-    size_t get_vertices_count() {
-        return vertices.size();
-    }
-
-    pair<int, int> get_coordinates(int vertex_number) {
-        Vertex vertex = vertices[vertex_number];
-        return {vertex.x, vertex.y};
     }
 
     void addVertex(int vertex_number, double x, double y) {
@@ -96,16 +83,15 @@ double distance(pair<int, int> a, pair<int, int> b) {
 }
 
 double a_star(Graph graph, int start, int finish) {
+    size_t dim = graph.vertices.size();
+
     priority_queue<Node, vector<Node>, greater<Node>> open;
-    vector<bool> closed(graph.get_vertices_count(), false);
-    vector<double> g(graph.get_vertices_count(), INF);
-    vector<double> f(graph.get_vertices_count(), INF);
+    vector<bool> closed(dim, false);
+    vector<double> g(dim, INF);
+    vector<double> f(dim, INF);
 
     g[start] = 0;
-    f[start] = distance(
-        graph.get_coordinates(start),
-        graph.get_coordinates(finish)
-    );
+    f[start] = distance(graph.vertices[start], graph.vertices[finish]);
     open.push({start, f[start]});
 
     while (!open.empty()) {
@@ -128,18 +114,17 @@ double a_star(Graph graph, int start, int finish) {
             }
 
             double g_temp = g[current] + distance(
-                graph.get_coordinates(current),
-                graph.get_coordinates(static_cast<int>(neighbor))
+                graph.vertices[current],
+                graph.vertices[static_cast<int>(neighbor)]
             );
-
             if (g_temp >= g[neighbor]) {
                 continue;
             }
 
             g[neighbor] = g_temp;
             f[neighbor] = g[neighbor] + distance(
-                graph.get_coordinates(static_cast<int>(neighbor)),
-                graph.get_coordinates(finish)
+                graph.vertices[static_cast<int>(neighbor)],
+                graph.vertices[finish]
             );
             open.push({static_cast<int>(neighbor), f[neighbor]});
         }
