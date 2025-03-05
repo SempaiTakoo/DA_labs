@@ -7,22 +7,27 @@
 #include <cmath>
 #include <set>
 #include <iomanip>
+#include <chrono>
 
 using namespace std;
 
 const bool DEBUG = false;
 const double INF = numeric_limits<double>::infinity();
 
+double get_distance(pair<int, int> a, pair<int, int> b) {
+    long x = b.first - a.first;
+    long y = b.second - a.second;
+    return sqrt(x * x + y * y);
+}
+
 class Graph {
 public:
-    vector<pair<int, int>> vertices;
-    vector<vector<bool>> adjacency_matrix;
+    vector<pair<double, double>> vertices;
+    vector<vector<pair<int, double>>> adjacency_list;
 
     Graph(int vertices_count) {
         vertices.resize(vertices_count);
-        adjacency_matrix.resize(
-            vertices_count, vector<bool>(vertices_count, false)
-        );
+        adjacency_list.resize(vertices_count);
     }
 
     void addVertex(int vertex_number, double x, double y) {
@@ -30,17 +35,9 @@ public:
     }
 
     void addEdge(int s, int f) {
-        adjacency_matrix[s][f] = true;
-        adjacency_matrix[f][s] = true;
-    }
-
-    void print_adjacency_matrix() {
-        for (size_t i = 0; i < adjacency_matrix.size(); ++i) {
-            for (size_t j = 0; j < adjacency_matrix.size(); ++j) {
-                cout << adjacency_matrix[i][j] << ' ';
-            }
-            cout << '\n';
-        }
+        double distance = get_distance(vertices[s], vertices[f]);
+        adjacency_list[s].push_back({f, distance});
+        adjacency_list[f].push_back({s, distance});
     }
 };
 
@@ -76,13 +73,7 @@ Graph input_graph() {
     return graph;
 }
 
-double distance(pair<int, int> a, pair<int, int> b) {
-    int x = b.first - a.first;
-    int y = b.second - a.second;
-    return sqrt(x * x + y * y);
-}
-
-double a_star(Graph graph, int start, int finish) {
+double a_star(Graph& graph, int start, int finish) {
     size_t dim = graph.vertices.size();
 
     priority_queue<Node, vector<Node>, greater<Node>> open;
@@ -91,7 +82,7 @@ double a_star(Graph graph, int start, int finish) {
     vector<double> f(dim, INF);
 
     g[start] = 0;
-    f[start] = distance(graph.vertices[start], graph.vertices[finish]);
+    f[start] = get_distance(graph.vertices[start], graph.vertices[finish]);
     open.push({start, f[start]});
 
     while (!open.empty()) {
@@ -104,29 +95,25 @@ double a_star(Graph graph, int start, int finish) {
             return g[current];
         }
 
-        vector<bool> neighbors = graph.adjacency_matrix[current];
-        for (size_t neighbor = 0; neighbor < neighbors.size(); ++neighbor) {
-            bool is_achievable = neighbors[neighbor];
-            bool is_neighbor_in_closed = closed[neighbor];
+        for (pair<int, double> edge : graph.adjacency_list[current]) {
+            int neighbor = edge.first;
+            double distance = edge.second;
 
-            if (!is_achievable || is_neighbor_in_closed) {
+            if (closed[neighbor]) {
                 continue;
             }
 
-            double g_temp = g[current] + distance(
-                graph.vertices[current],
-                graph.vertices[static_cast<int>(neighbor)]
-            );
+            double g_temp = g[current] + distance;
             if (g_temp >= g[neighbor]) {
                 continue;
             }
 
             g[neighbor] = g_temp;
-            f[neighbor] = g[neighbor] + distance(
-                graph.vertices[static_cast<int>(neighbor)],
+            f[neighbor] = g[neighbor] + get_distance(
+                graph.vertices[neighbor],
                 graph.vertices[finish]
             );
-            open.push({static_cast<int>(neighbor), f[neighbor]});
+            open.push({neighbor, f[neighbor]});
         }
     }
 
@@ -146,8 +133,20 @@ void shortest_paths_between_vertices() {
         --start;
         --finish;
 
-        cout << fixed << setprecision(6);
-        cout << a_star(graph, start, finish) << '\n';
+        auto time1 = chrono::high_resolution_clock::now();
+
+        a_star(graph, start, finish);
+
+        auto time2 = chrono::high_resolution_clock::now();
+        chrono::duration<double> elapsed = time2 - time1;
+        cout << elapsed.count() << " seconds\n";
+
+        // double answer = a_star(graph, start, finish);
+        // if (answer == -1) {
+        //     cout << -1 << '\n';
+        // } else {
+        //     cout << fixed << setprecision(6) << answer << '\n';
+        // }
     }
 }
 
